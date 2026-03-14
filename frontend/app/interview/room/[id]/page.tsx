@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
@@ -6,7 +6,6 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useAuth } from '@/lib/auth-context'
-import { getQuestionById } from '@/lib/interview-questions'
 import { CodeEditor } from '@/components/code-editor'
 import { Clock, ChevronLeft, AlertCircle, Send } from 'lucide-react'
 import { Input } from '@/components/ui/input'
@@ -19,9 +18,12 @@ export default function InterviewRoomPage() {
   const router = useRouter()
   const { user, isLoading: authLoading } = useAuth()
 
-  const [timeLeft, setTimeLeft] = useState<number | null>(null)
+  const [timeLeft, setTimeLeft] = useState<number | null>(7200)
   const [code, setCode] = useState('')
   const [submitted, setSubmitted] = useState(false)
+  const [topic, setTopic] = useState<string | null>(null)
+  const [question, setQuestion] = useState<string | null>(null)
+  const [difficulty, setDifficulty] = useState<string | null>(null)
   
   const [messages, setMessages] = useState<Message[]>([
     { role: 'assistant', content: 'Hello! I am your AI interviewer. I will be evaluating your problem solving, concept clarity, and communication. Please start by explaining your approach before you write code.' }
@@ -30,8 +32,6 @@ export default function InterviewRoomPage() {
   const [isTyping, setIsTyping] = useState(false)
   const [evaluation, setEvaluation] = useState<any>(null)
   const chatScrollRef = useRef<HTMLDivElement>(null)
-
-  const question = getQuestionById(questionId)
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -46,10 +46,49 @@ export default function InterviewRoomPage() {
   }, [messages])
 
   useEffect(() => {
-    if (!question) return
+    const fetchInterviewData = async () => {
+      try {
+        const token = localStorage.getItem('token')
+        const reportRes = await fetch(`http://localhost:8000/interview/report/${questionId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        if (!reportRes.ok) throw new Error('Failed to fetch report')
+        const reportData = await reportRes.json()
+        setTopic(reportData.topic)
+        // Set previous messages if they exist
+        if (reportData.answers && reportData.answers.length > 0) {
+          const pastMessages: Message[] = []
+          reportData.answers.forEach((ans: any) => {
+             pastMessages.push({ role: 'user', content: ans.answer_text })
+             pastMessages.push({ role: 'assistant', content: `Score: ${ans.score}/100\nFeedback: ${ans.feedback}\nFollow-up: ${ans.follow_up_question || 'None'}` })
+          })
+          setMessages([
+            { role: 'assistant', content: 'Hello! I am your AI interviewer. I will be evaluating your problem solving, concept clarity, and communication. Please start by explaining your approach before you write code.' },
+            ...pastMessages
+          ])
+        }
 
-    // Initialize timer on mount
-    setTimeLeft(question.timeLimit * 60)
+        if (!question) {
+          const qRes = await fetch(`http://localhost:8000/interview/question?topic=${encodeURIComponent(reportData.topic)}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+          if (qRes.ok) {
+            const qData = await qRes.json()
+            setQuestion(qData.question)
+            setDifficulty(qData.difficulty)
+          }
+        }
+      } catch(e) {
+        console.error(e)
+      }
+    }
+    if (user && questionId) {
+      fetchInterviewData()
+    }
+  }, [user, questionId])
+
+  useEffect(() => {
+    if (!topic) return
 
     const interval = setInterval(() => {
       setTimeLeft((prev) => {
@@ -62,7 +101,7 @@ export default function InterviewRoomPage() {
     }, 1000)
 
     return () => clearInterval(interval)
-  }, [question])
+  }, [topic])
 
   if (authLoading || !user) {
     return (
@@ -72,19 +111,8 @@ export default function InterviewRoomPage() {
     )
   }
 
-  if (!question) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Card className="p-8 max-w-md text-center">
-          <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-foreground mb-2">Question not found</h2>
-          <p className="text-muted-foreground mb-6">The interview question you're looking for doesn't exist.</p>
-          <Link href="/interview/select">
-            <Button>Back to Selection</Button>
-          </Link>
-        </Card>
-      </div>
-    )
+  if (!question && topic) {
+    // Wait until it loads completely. Can show skeleton.
   }
 
   const formatTime = (seconds: number) => {
@@ -95,70 +123,56 @@ export default function InterviewRoomPage() {
 
   const isTimeWarning = timeLeft !== null && timeLeft < 300 && timeLeft > 0
 
-  const handleSendMessage = async () => {
+  const handleSendMessage = () => {
     if (!chatInput.trim()) return
-
-    const newMessages = [...messages, { role: 'user' as const, content: chatInput }]
-    setMessages(newMessages)
+    setMessages(prev => [...prev, { role: 'user', content: chatInput }])
     setChatInput('')
-    setIsTyping(true)
-
-    try {
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: newMessages,
-          questionTitle: question?.title,
-          questionDescription: question?.description
-        })
-      })
-      const data = await res.json()
-      if (data.reply) {
-        setMessages([...newMessages, { role: 'assistant', content: data.reply }])
-      } else {
-        setMessages([...newMessages, { role: 'assistant', content: "Sorry, I'm having trouble connecting." }])
-      }
-    } catch (e) {
-      setMessages([...newMessages, { role: 'assistant', content: "Sorry, an error occurred." }])
-    } finally {
-      setIsTyping(false)
-    }
   }
 
   const handleSubmit = async (submittedCode: string) => {
     setCode(submittedCode)
     setIsTyping(true)
+
+    const finalAnswerText = (chatInput ? chatInput + "\n" : "") + submittedCode
+
+    const newMessages = [...messages]
+    if (chatInput.trim()) {
+      newMessages.push({ role: 'user', content: chatInput })
+      setMessages(newMessages)
+      setChatInput('')
+    }
     
     try {
-      const res = await fetch('/api/evaluate', {
+      const token = localStorage.getItem('token')
+      const res = await fetch('http://localhost:8000/interview/answer', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
         body: JSON.stringify({
-          code: submittedCode,
-          messages,
-          questionTitle: question?.title,
-          questionDescription: question?.description
+          interview_id: Number(questionId),
+          question_text: question,
+          answer_text: finalAnswerText
         })
       })
       const data = await res.json()
+      
+      const assistantMessage = `Score: ${data.score}/100\nFeedback: ${data.feedback}\nFollow-up: ${data.follow_up_question || 'None'}`
+      setMessages([...newMessages, { role: 'assistant', content: assistantMessage }])
+
       setEvaluation({
-        clarity: data.clarity || 0,
-        quality: data.quality || 0,
-        complexity: data.complexity || 0,
-        overall: data.overall || 0,
-        feedback: data.feedback || "Evaluation complete.",
-        nextDifficulty: data.nextDifficulty || "medium"
+        overall: data.score,
+        feedback: data.feedback,
+        follow_up_question: data.follow_up_question
       })
     } catch (e) {
+      console.error(e)
       setEvaluation({
-        clarity: 5,
-        quality: 5,
-        complexity: 5,
-        overall: 50,
+        overall: 0,
         feedback: "Could not retrieve evaluation.",
-        nextDifficulty: "medium"
       })
+      setMessages([...newMessages, { role: 'assistant', content: "An error occurred." }])
     } finally {
       setIsTyping(false)
       setSubmitted(true)
@@ -175,50 +189,29 @@ export default function InterviewRoomPage() {
           </Link>
 
           <div className="grid md:grid-cols-2 gap-8">
-            {/* Problem */}
             <Card className="p-6">
-              <h1 className="text-2xl font-bold text-foreground mb-4">{question.title}</h1>
-              <p className="text-muted-foreground mb-6">{question.description}</p>
-
+              <h1 className="text-2xl font-bold text-foreground mb-4">Interview Completed</h1>
+              
               <div className="space-y-4">
                 <div>
-                  <h3 className="font-semibold text-foreground mb-2">Examples:</h3>
-                  <ul className="space-y-2 text-sm text-muted-foreground">
-                    {question.examples.map((example, i) => (
-                      <li key={i} className="font-mono bg-muted p-2 rounded">
-                        {example}
-                      </li>
-                    ))}
-                  </ul>
+                  <h3 className="font-semibold text-foreground mb-2">Topic: {topic}</h3>
+                  <div className="text-sm text-muted-foreground whitespace-pre-wrap mt-2">{question}</div>
                 </div>
               </div>
             </Card>
 
-            {/* Feedback */}
             <Card className="p-6 bg-accent/5 border border-accent/20">
               <h2 className="text-2xl font-bold text-foreground mb-4">Detailed AI Interview Report</h2>
               <div className="space-y-4">
-                <div>
-                  <h3 className="font-semibold text-accent mb-2">Code Quality: {evaluation?.quality}/10</h3>
-                  <p className="text-sm text-muted-foreground">Your solution is structured reasonably well.</p>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-accent mb-2">Time Complexity: {evaluation?.complexity}/10</h3>
-                  <p className="text-sm text-muted-foreground">{evaluation?.complexity > 7 ? 'Optimal approach demonstrated.' : 'Could be improved for better efficiency.'}</p>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-accent mb-2">Concept Clarity & Communication: {evaluation?.clarity}/10</h3>
-                  <p className="text-sm text-muted-foreground">{evaluation?.clarity > 7 ? 'Great job explaining your thoughts.' : 'Try to explain the algorithm more clearly during coding.'}</p>
-                </div>
                 <div className="bg-green-500/10 border border-green-500/20 rounded p-3 mt-6">
-                  <p className="font-semibold text-green-700 dark:text-green-400 mb-2">Overall Score: {evaluation?.overall}%</p>
+                  <p className="font-semibold text-green-700 dark:text-green-400 mb-2">Overall Score: {evaluation?.overall}/100</p>
                   <p className="text-sm text-green-800 dark:text-green-300 mb-2">{evaluation?.feedback}</p>
-                  {evaluation?.overall > 80 ? (
-                    <p className="text-xs font-semibold text-accent mt-2">🌟 Adaptive Difficulty: You nailed this! Next time, try a {evaluation?.nextDifficulty} question.</p>
-                  ) : (
-                    <p className="text-xs font-semibold text-orange-500 mt-2">📉 Adaptive Difficulty: Consider practicing {evaluation?.nextDifficulty} questions before moving up.</p>
-                  )}
                 </div>
+                {evaluation?.follow_up_question && (
+                  <div className="mt-4">
+                    <p className="text-xs font-semibold text-accent">Next Step: {evaluation.follow_up_question}</p>
+                  </div>
+                )}
               </div>
 
               <div className="mt-6 flex gap-3">
@@ -234,7 +227,6 @@ export default function InterviewRoomPage() {
             </Card>
           </div>
 
-          {/* Code Review */}
           <Card className="mt-8 p-6">
             <h2 className="text-xl font-bold text-foreground mb-4">Your Solution</h2>
             <div className="bg-background p-4 rounded border border-border">
@@ -258,7 +250,7 @@ export default function InterviewRoomPage() {
             Back
           </Link>
 
-          <h1 className="text-xl font-bold text-foreground">{question.title}</h1>
+          <h1 className="text-xl font-bold text-foreground">{topic || 'Loading...'} Interview</h1>
 
           <div
             className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold ${
@@ -281,19 +273,18 @@ export default function InterviewRoomPage() {
               <div className="space-y-6">
                 <div>
                   <h2 className="text-2xl font-bold text-foreground mb-4">Problem</h2>
-                  <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">{question.description}</p>
+                  {question ? (
+                    <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">{question}</p>
+                  ) : (
+                    <p className="text-muted-foreground animate-pulse">Loading question...</p>
+                  )}
                 </div>
 
-                <div>
-                  <h3 className="text-lg font-semibold text-foreground mb-3">Examples:</h3>
-                  <div className="space-y-2">
-                    {question.examples.map((example, i) => (
-                      <div key={i} className="bg-muted p-3 rounded border border-border text-sm font-mono text-foreground">
-                        {example}
-                      </div>
-                    ))}
+                {difficulty && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground mb-3">Difficulty: {difficulty}</h3>
                   </div>
-                </div>
+                )}
 
                 <div className="bg-blue-500/10 border border-blue-500/20 rounded p-4">
                   <p className="text-sm text-blue-700 dark:text-blue-400">
@@ -320,7 +311,7 @@ export default function InterviewRoomPage() {
                     <div className={`px-4 py-2 rounded-xl max-w-[85%] text-sm ${
                       msg.role === 'user' 
                         ? 'bg-accent text-accent-foreground rounded-br-none' 
-                        : 'bg-card border border-border text-foreground rounded-bl-none shadow-sm'
+                        : 'bg-card border border-border text-foreground rounded-bl-none shadow-sm whitespace-pre-wrap'
                     }`}>
                       {msg.content}
                     </div>
@@ -370,3 +361,4 @@ export default function InterviewRoomPage() {
     </main>
   )
 }
+
