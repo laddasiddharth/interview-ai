@@ -45,7 +45,7 @@ jobs:
             sys.exit(1)
         
         # Read and parse TypeScript interfaces (basic validation)
-        with open('frontend/app/interview/room/page.tsx', 'r') as f:
+        with open('frontend/app/interview/room/[id]/page.tsx', 'r') as f:
             frontend_interfaces = f.read()
         
         if 'interface' in frontend_interfaces or 'type' in frontend_interfaces:
