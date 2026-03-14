@@ -27,7 +27,7 @@ def get_question(topic: str, db: Session = Depends(get_db)):
 
 @router.post("/answer", response_model=EvaluationResponse)
 def submit_answer(data: AnswerSubmit, db: Session = Depends(get_db)):
-    evaluation = evaluator.evaluate_answer(data.question_text, data.answer_text)
+    evaluation = evaluator.evaluate_answer(data.question_text, data.answer_text, db=db)
     
     answer_record = Answer(
         interview_id=data.interview_id,
@@ -81,9 +81,9 @@ def complete_interview(
     # Calculate final score
     scores = [answer.score for answer in answers if answer.score is not None]
     final_score = sum(scores) / len(scores) if scores else 0
-    
-    # Add final score field to interview (if your model supports it)
-    # For now, we'll return it in the response
+
+    # Persist final score so it is available for analytics/reporting later.
+    interview.final_score = round(final_score, 2)
     
     db.commit()
     db.refresh(interview)
@@ -93,7 +93,7 @@ def complete_interview(
         "topic": interview.topic,
         "start_time": interview.start_time.isoformat(),
         "end_time": interview.end_time.isoformat(),
-        "final_score": round(final_score, 2),
+        "final_score": interview.final_score,
         "total_questions": len(answers),
         "duration_minutes": (interview.end_time - interview.start_time).total_seconds() / 60
     }

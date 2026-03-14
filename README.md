@@ -294,4 +294,3 @@ All endpoints are served from `http://localhost:8000`. Interactive docs: `/docs`
 - [ ] Add `end_time` update logic when a session is completed
 - [ ] Add GitHub Actions CI pipeline (lint, test, build)
 - [ ] Add `.env.example` file with placeholder values
-- [ ] Migrate `backend/routers/` to the new `google-genai` SDK (currently uses legacy `google.generativeai`)

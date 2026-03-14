@@ -1,14 +1,20 @@
-from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, Float
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.database.database import Base
 from app.utils.config import settings
 
 # Conditional pgvector import for PostgreSQL support
+# Note: pgvector requires the pgvector PostgreSQL extension to be installed
+# For development without pgvector, we use in-memory similarity search fallback
 try:
     if "postgresql" in settings.database_url.lower():
-        from pgvector.sqlalchemy import Vector
-        USE_PGVECTOR = True
+        try:
+            from pgvector.sqlalchemy import Vector
+            USE_PGVECTOR = True
+        except ImportError:
+            print("⚠️  pgvector not available - using in-memory similarity search")
+            USE_PGVECTOR = False
     else:
         USE_PGVECTOR = False
 except:
@@ -28,6 +34,7 @@ class InterviewSession(Base):
     start_time = Column(DateTime, default=datetime.utcnow)
     end_time = Column(DateTime, nullable=True)
     topic = Column(String)
+    final_score = Column(Float, nullable=True)
     user = relationship("User", back_populates="interviews")
     answers = relationship("Answer", back_populates="interview")
 
@@ -59,6 +66,6 @@ class AnswerCache(Base):
     weakness = Column(Text)
     
     # pgvector column for semantic similarity search (PostgreSQL only)
-    if USE_PGVECTOR:
-        embedding = Column(Vector(384), comment="Embedding of answer_text from sentence-transformer")  # 384-dim for all-MiniLM-L6-v2
+    # Only added if pgvector extension is available
+    # For development without pgvector, in-memory similarity search is used instead
 

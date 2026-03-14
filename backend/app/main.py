@@ -1,8 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes import auth, interview, analytics
+from app.routes import auth, interview, analytics, chat, evaluate
 from app.database.database import Base, engine
-from routers import chat, evaluate
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded

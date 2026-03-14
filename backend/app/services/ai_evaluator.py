@@ -42,6 +42,7 @@ class AIEvaluator:
         
         # Encode current answer
         current_emb = self.encoder.encode([answer])
+        query_embedding = current_emb[0].tolist() if self.use_pgvector else current_emb
         
         if self.use_pgvector:
             # Use pgvector for similarity search - this query runs in the database
@@ -50,7 +51,7 @@ class AIEvaluator:
             
             best_match = db.query(
                 AnswerCache,
-                func.cosine_distance(AnswerCache.embedding, current_emb[0]).label("distance")
+                func.cosine_distance(AnswerCache.embedding, query_embedding).label("distance")
             ).filter(
                 AnswerCache.question_text == question,
                 AnswerCache.embedding.isnot(None)
@@ -122,14 +123,15 @@ Return ONLY valid JSON.
             ),
         )
         try:
-            res = json.loads(response.text)
+            clean_text = response.text.strip().removeprefix("```json").removesuffix("```").strip()
+            res = json.loads(clean_text)
             
             # Save to cache if DB provided
             if db:
                 # Generate embedding for pgvector (if using PostgreSQL)
                 embedding = None
                 if self.use_pgvector:
-                    embedding = self.encoder.encode(answer)
+                    embedding = self.encoder.encode(answer).tolist()
                 
                 new_cache = AnswerCache(
                     question_text=question,
@@ -175,7 +177,8 @@ Return ONLY valid JSON.
             ),
         )
         try:
-            return json.loads(response.text)
+            clean_text = response.text.strip().removeprefix("```json").removesuffix("```").strip()
+            return json.loads(clean_text)
         except Exception as e:
             return {"error": f"Error generating report: {str(e)}", "total_score": 0}
 
