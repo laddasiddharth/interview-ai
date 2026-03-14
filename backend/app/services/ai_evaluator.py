@@ -1,4 +1,5 @@
 from google import genai
+from google.genai import types
 from app.utils.config import settings
 import json
 from sentence_transformers import SentenceTransformer
@@ -13,7 +14,7 @@ class AIEvaluator:
 
     def check_cache(self, db: Session, question: str, answer: str):
         # Find cached answers for the exact same question
-        cached_answers = db.query(AnswerCache).filter(AnswerCache.question_text == question).all()
+        cached_answers = db.query(AnswerCache).filter(AnswerCache.question_text == question).limit(50).all()
         if not cached_answers:
             return None
         
@@ -64,15 +65,13 @@ Return ONLY valid JSON.
 """
         response = self.client.models.generate_content(
             model="gemini-1.5-flash",
-            contents=prompt
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+            ),
         )
         try:
-            text = response.text.strip()
-            if text.startswith('```json'):
-                text = text[7:-3]
-            elif text.startswith('```'):
-                text = text[3:-3]
-            res = json.loads(text)
+            res = json.loads(response.text)
             
             # Save to cache if DB provided
             if db:
@@ -109,15 +108,13 @@ Return ONLY valid JSON.
 """
         response = self.client.models.generate_content(
             model="gemini-1.5-flash",
-            contents=prompt
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+            ),
         )
         try:
-            text = response.text.strip()
-            if text.startswith('```json'):
-                text = text[7:-3]
-            elif text.startswith('```'):
-                text = text[3:-3]
-            return json.loads(text)
+            return json.loads(response.text)
         except Exception as e:
             return {"error": f"Error generating report: {str(e)}", "total_score": 0}
 
