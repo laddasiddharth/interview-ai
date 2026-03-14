@@ -6,7 +6,8 @@ pgvector
 pydantic
 pydantic-settings
 python-jose[cryptography]
-passlib[bcrypt]
+passlib
+bcrypt==3.2.0
 google-genai
 pandas
 python-multipart
