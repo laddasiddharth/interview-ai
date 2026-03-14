@@ -2,6 +2,17 @@ from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.database.database import Base
+from app.utils.config import settings
+
+# Conditional pgvector import for PostgreSQL support
+try:
+    if "postgresql" in settings.database_url.lower():
+        from pgvector.sqlalchemy import Vector
+        USE_PGVECTOR = True
+    else:
+        USE_PGVECTOR = False
+except:
+    USE_PGVECTOR = False
 
 class User(Base):
     __tablename__ = "users"
@@ -46,3 +57,8 @@ class AnswerCache(Base):
     score = Column(Integer)
     strengths = Column(Text)
     weakness = Column(Text)
+    
+    # pgvector column for semantic similarity search (PostgreSQL only)
+    if USE_PGVECTOR:
+        embedding = Column(Vector(384), comment="Embedding of answer_text from sentence-transformer")  # 384-dim for all-MiniLM-L6-v2
+

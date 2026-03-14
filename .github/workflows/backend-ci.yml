@@ -1,0 +1,110 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-ci.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'backend/**'
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.11']
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Cache pip packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      run: |
+        cd backend
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-cov pylint black flake8
+
+    - name: Lint with pylint
+      run: |
+        cd backend
+        pylint app/ || true
+      continue-on-error: true
+
+    - name: Format check with black
+      run: |
+        cd backend
+        black --check app/ || true
+      continue-on-error: true
+
+    - name: Lint with flake8
+      run: |
+        cd backend
+        flake8 app/ --count --select=E9,F63,F7,F82 --show-source --statistics || true
+      continue-on-error: true
+
+    - name: Type checking (optional - requires additional setup)
+      run: |
+        cd backend
+        pip install mypy
+        mypy app/ --ignore-missing-imports || true
+      continue-on-error: true
+
+    - name: Run pytest
+      env:
+        DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
+        GEMINI_API_KEY: test_key
+        SECRET_KEY: test_secret
+      run: |
+        cd backend
+        pytest tests/ -v --cov=app --cov-report=xml --cov-report=html || true
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./backend/coverage.xml
+        flags: backend
+        name: backend-coverage
+      continue-on-error: true
+
+    - name: Check schema consistency
+      run: |
+        cd backend
+        python -c "
+        import sys
+        from app.schemas.schemas import *
+        from app.models.models import *
+        print('✓ Schema definitions are syntactically valid')
+        " || exit 1

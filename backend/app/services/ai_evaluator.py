@@ -3,43 +3,94 @@ from google.genai import types
 from app.utils.config import settings
 import json
 from sentence_transformers import SentenceTransformer
-from sklearn.metrics.pairwise import cosine_similarity
 from sqlalchemy.orm import Session
 from app.models.models import AnswerCache
+
+# Try to import pgvector for PostgreSQL support
+try:
+    if "postgresql" in settings.database_url.lower():
+        from pgvector.sqlalchemy import Vector
+        USE_PGVECTOR = True
+    else:
+        USE_PGVECTOR = False
+except:
+    USE_PGVECTOR = False
+
+# Import cosine_similarity for fallback (SQLite)
+if not USE_PGVECTOR:
+    from sklearn.metrics.pairwise import cosine_similarity
 
 class AIEvaluator:
     def __init__(self):
         self.client = genai.Client(api_key=settings.gemini_api_key)
         self.encoder = SentenceTransformer('all-MiniLM-L6-v2')
+        self.use_pgvector = USE_PGVECTOR
 
     def check_cache(self, db: Session, question: str, answer: str):
-        # Find cached answers for the exact same question
-        cached_answers = db.query(AnswerCache).filter(AnswerCache.question_text == question).limit(50).all()
+        """
+        Check if similar answer exists in cache using:
+        - pgvector for PostgreSQL (scalable, database-side similarity search)
+        - In-memory cosine similarity for SQLite (suitable for development)
+        """
+        # Find cached answers for the same question
+        cached_answers = db.query(AnswerCache).filter(
+            AnswerCache.question_text == question
+        ).limit(50).all()
+        
         if not cached_answers:
             return None
         
         # Encode current answer
         current_emb = self.encoder.encode([answer])
         
-        # Evaluate similarity against cached answers
-        best_match = None
-        highest_similarity = 0.0
-        
-        for cache in cached_answers:
-            cache_emb = self.encoder.encode([cache.answer_text])
-            sim = cosine_similarity(current_emb, cache_emb)[0][0]
-            if sim > highest_similarity:
-                highest_similarity = sim
-                best_match = cache
+        if self.use_pgvector:
+            # Use pgvector for similarity search - this query runs in the database
+            # and scales much better than loading all embeddings into memory
+            from sqlalchemy import func, and_
+            
+            best_match = db.query(
+                AnswerCache,
+                func.cosine_distance(AnswerCache.embedding, current_emb[0]).label("distance")
+            ).filter(
+                AnswerCache.question_text == question,
+                AnswerCache.embedding.isnot(None)
+            ).order_by("distance").first()
+            
+            if best_match:
+                cache, distance = best_match
+                similarity = 1 - distance  # Convert distance to similarity score
                 
-        if highest_similarity > 0.9 and best_match:
-            return {
-                "score": best_match.score,
-                "feedback": best_match.ai_feedback,
-                "strengths": best_match.strengths,
-                "weakness": best_match.weakness,
-                "cached": True
-            }
+                if similarity > 0.9:
+                    return {
+                        "score": cache.score,
+                        "feedback": cache.ai_feedback,
+                        "strengths": cache.strengths,
+                        "weakness": cache.weakness,
+                        "cached": True,
+                        "similarity": round(similarity, 3)
+                    }
+        else:
+            # Fallback: in-memory cosine similarity (for SQLite dev environments)
+            best_match = None
+            highest_similarity = 0.0
+            
+            for cache in cached_answers:
+                cache_emb = self.encoder.encode([cache.answer_text])
+                sim = cosine_similarity(current_emb, cache_emb)[0][0]
+                if sim > highest_similarity:
+                    highest_similarity = sim
+                    best_match = cache
+            
+            if highest_similarity > 0.9 and best_match:
+                return {
+                    "score": best_match.score,
+                    "feedback": best_match.ai_feedback,
+                    "strengths": best_match.strengths,
+                    "weakness": best_match.weakness,
+                    "cached": True,
+                    "similarity": round(highest_similarity, 3)
+                }
+        
         return None
 
     def evaluate_answer(self, question: str, answer: str, db: Session = None) -> dict:
@@ -75,6 +126,11 @@ Return ONLY valid JSON.
             
             # Save to cache if DB provided
             if db:
+                # Generate embedding for pgvector (if using PostgreSQL)
+                embedding = None
+                if self.use_pgvector:
+                    embedding = self.encoder.encode(answer)
+                
                 new_cache = AnswerCache(
                     question_text=question,
                     answer_text=answer,
@@ -83,8 +139,13 @@ Return ONLY valid JSON.
                     strengths=res.get("strengths", ""),
                     weakness=res.get("weakness", "")
                 )
+                
+                if self.use_pgvector and embedding is not None:
+                    new_cache.embedding = embedding
+                
                 db.add(new_cache)
                 db.commit()
+            
             return res
         except Exception as e:
             return {"score": 5, "feedback": f"Error parsing AI response: {str(e)}", "follow_up_question": None}

@@ -1,12 +1,12 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
-import google.generativeai as genai
+from google import genai
+from google.genai import types
+from app.utils.config import settings
+from app.routes.auth import get_current_user
+from sqlalchemy.orm import Session
+from app.database.database import get_db
 import json
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
 router = APIRouter(prefix="/evaluate", tags=["evaluate"])
 
@@ -16,11 +16,16 @@ class EvaluateRequest(BaseModel):
     question_context: dict
 
 @router.post("/")
-async def evaluate_code(request: EvaluateRequest):
-    model = genai.GenerativeModel(
-        'gemini-1.5-flash',
-        generation_config={"response_mime_type": "application/json"}
-    )
+async def evaluate_code(
+    request: EvaluateRequest,
+    current_user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Evaluate code submission using the new google-genai SDK.
+    Requires authentication to prevent unauthorized API usage.
+    """
+    client = genai.Client(api_key=settings.gemini_api_key)
     
     prompt = f"""
     Evaluate the following code and explanation for solving the problem "{request.question_context.get('title', 'Unknown')}".
@@ -38,10 +43,16 @@ async def evaluate_code(request: EvaluateRequest):
     - "improvements": List of strings detailing ways to improve
     """
     
-    response = model.generate_content(prompt)
+    response = client.models.generate_content(
+        model="gemini-1.5-flash",
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            response_mime_type="application/json"
+        )
+    )
     
     try:
         result = json.loads(response.text)
         return result
-    except:
-        return {"error": "Failed to parse evaluation response."}
+    except Exception as e:
+        return {"error": f"Failed to parse evaluation response: {str(e)}"}

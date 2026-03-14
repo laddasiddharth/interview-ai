@@ -1,7 +1,8 @@
 fastapi
 uvicorn
 sqlalchemy
-psycopg2
+psycopg2-binary
+pgvector
 pydantic
 pydantic-settings
 python-jose[cryptography]
@@ -12,3 +13,5 @@ python-multipart
 sentence-transformers
 scikit-learn
 slowapi
+alembic
+
