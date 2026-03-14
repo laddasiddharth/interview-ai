@@ -1,12 +1,4 @@
-# ─── Logs ─────────────────────────────────────────────────────────────────────
-logs/
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-
-# ─── OS / Editor ──────────────────────────────────────────────────────────────
+# OS / Editor
 .DS_Store
 Thumbs.db
 *.pem
@@ -18,26 +10,34 @@ Thumbs.db
 *.njsproj
 *.sln
 *.sw?
-*.local
+.history/
 
-# ─── Node / npm ───────────────────────────────────────────────────────────────
+# Node / npm
 node_modules/
 jspm_packages/
 .npm/
+.eslintcache
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
-# ─── Next.js / Frontend build ─────────────────────────────────────────────────
-frontend/.next/
-frontend/out/
-frontend/build/
-frontend/.swc/
+# Next.js / Frontend
+.next/
+out/
+build/
+.swc/
+next-env.d.ts
+*.tsbuildinfo
 
-# ─── Python ───────────────────────────────────────────────────────────────────
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.pyd
 *.pyo
 .Python
+.ipynb_checkpoints/
 
 # Virtual environments
 venv/
@@ -45,16 +45,30 @@ venv/
 env/
 .env/
 ENV/
-backend/venv/
 
 # Distribution / packaging
+dist/
+dist-*/
 *.egg-info/
 *.egg
-dist/
-build/
 .eggs/
 
-# Test / lint caches
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+.env.development
+.env.test
+.env.production
+
+# Cache / Tooling
+.cache/
+sentence_transformers_cache/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
@@ -63,27 +77,9 @@ htmlcov/
 .coverage.*
 coverage.xml
 .nyc_output/
+.agents/
+.cortex/
+.gemini/
 
-# ─── Database ─────────────────────────────────────────────────────────────────
-*.db
-*.sqlite
-*.sqlite3
-
-# ─── Environment variables ────────────────────────────────────────────────────
-# IMPORTANT: never commit secrets — copy .env.example and fill in locally
-.env
-.env.local
-.env.*.local
-.env.development
-.env.test
-.env.production
-
-# ─── ML model cache ───────────────────────────────────────────────────────────
-# SentenceTransformer downloads models here at first run
-sentence_transformers_cache/
-.cache/
-
-# ─── Misc ─────────────────────────────────────────────────────────────────────
-*.pem
-*.key
-*.tsbuildinfo
+# Large Data Files (Seeding datasets)
+# Leetcode.csv
