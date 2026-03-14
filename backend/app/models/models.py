@@ -1,0 +1,48 @@
+from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime
+from sqlalchemy.orm import relationship
+from datetime import datetime
+from app.database.database import Base
+
+class User(Base):
+    __tablename__ = "users"
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, unique=True, index=True)
+    hashed_password = Column(String)
+    interviews = relationship("InterviewSession", back_populates="user")
+
+class InterviewSession(Base):
+    __tablename__ = "interviews"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    start_time = Column(DateTime, default=datetime.utcnow)
+    end_time = Column(DateTime, nullable=True)
+    topic = Column(String)
+    user = relationship("User", back_populates="interviews")
+    answers = relationship("Answer", back_populates="interview")
+
+class Question(Base):
+    __tablename__ = "questions"
+    id = Column(Integer, primary_key=True, index=True)
+    topic = Column(String)
+    content = Column(Text)
+    difficulty = Column(String)
+
+class Answer(Base):
+    __tablename__ = "answers"
+    id = Column(Integer, primary_key=True, index=True)
+    interview_id = Column(Integer, ForeignKey("interviews.id"))
+    question_text = Column(Text)
+    answer_text = Column(Text)
+    score = Column(Integer, nullable=True)
+    feedback = Column(Text, nullable=True)
+    interview = relationship("InterviewSession", back_populates="answers")
+
+class AnswerCache(Base):
+    __tablename__ = "answer_cache"
+    id = Column(Integer, primary_key=True, index=True)
+    question_text = Column(Text, index=True)
+    answer_text = Column(Text)
+    ai_feedback = Column(Text)
+    score = Column(Integer)
+    strengths = Column(Text)
+    weakness = Column(Text)
