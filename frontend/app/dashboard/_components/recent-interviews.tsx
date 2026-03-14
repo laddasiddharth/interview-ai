@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { mockInterviews } from '@/lib/mock-data'
 import { ArrowRight, CheckCircle, AlertCircle } from 'lucide-react'
 
 interface RecentInterviewsProps {

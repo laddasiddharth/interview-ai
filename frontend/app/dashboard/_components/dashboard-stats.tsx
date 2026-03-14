@@ -1,5 +1,4 @@
 import { Card } from '@/components/ui/card'
-import { mockMetrics } from '@/lib/mock-data'
 import { TrendingUp, Award, Zap, Target } from 'lucide-react'
 
 interface DashboardStatsProps {
