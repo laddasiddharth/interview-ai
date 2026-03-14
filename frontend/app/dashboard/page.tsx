@@ -10,23 +10,71 @@ import { DashboardStats } from './_components/dashboard-stats'
 import { RecentInterviews } from './_components/recent-interviews'
 import { PerformanceChart } from './_components/performance-chart'
 import { CategoryChart } from './_components/category-chart'
-import { mockMetrics } from '@/lib/mock-data'
 import { Plus, AlertCircle } from 'lucide-react'
+import { useState } from 'react'
+
+interface AnalyticsData {
+  total_interviews: number
+  average_score: number
+  best_score: number
+  performance_data: Array<{ date: string; score: number }>
+  topics: Record<string, number>
+}
 
 export default function DashboardPage() {
-  const { user, isLoading } = useAuth()
+  const { user, isLoading: authLoading } = useAuth()
   const router = useRouter()
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
+  const [recentInterviews, setRecentInterviews] = useState<any[]>([])
+  const [dataLoading, setDataLoading] = useState(true)
 
   useEffect(() => {
-    if (!isLoading && !user) {
+    if (!authLoading && !user) {
       router.push('/login')
     }
-  }, [user, isLoading, router])
+  }, [user, authLoading, router])
 
-  if (isLoading || !user) {
+  useEffect(() => {
+    const fetchData = async () => {
+      const token = localStorage.getItem('token')
+      if (!user || !token) return
+
+      try {
+        const [analyticsRes, detailsRes] = await Promise.all([
+          fetch('http://localhost:8000/analytics/user', {
+            headers: { Authorization: `Bearer ${token}` }
+          }),
+          fetch('http://localhost:8000/analytics/user/details', {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+        ])
+
+        if (analyticsRes.ok) {
+          const data = await analyticsRes.json()
+          setAnalytics(data)
+        }
+        
+        if (detailsRes.ok) {
+          const data = await detailsRes.json()
+          setRecentInterviews(data)
+        }
+      } catch (error) {
+        console.error('Failed to fetch dashboard data', error)
+      } finally {
+        setDataLoading(false)
+      }
+    }
+
+    if (user && !authLoading) {
+      fetchData()
+    }
+  }, [user, authLoading])
+
+  if (authLoading || dataLoading || !user || !analytics) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse text-muted-foreground">Loading...</div>
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-accent border-r-2 border-r-transparent mr-4" />
+        <div className="text-muted-foreground">Loading your progress...</div>
       </div>
     )
   }
@@ -50,7 +98,7 @@ export default function DashboardPage() {
 
         {/* Stats */}
         <div className="mb-8">
-          <DashboardStats />
+          <DashboardStats data={analytics} />
         </div>
 
         {/* Tips Section */}
@@ -60,9 +108,15 @@ export default function DashboardPage() {
             <div>
               <h3 className="font-semibold text-foreground mb-2">Focus Areas This Week</h3>
               <ul className="text-sm text-muted-foreground space-y-1">
-                <li>• Improve {mockMetrics.weakAreas[0]} skills (Currently: 80%)</li>
-                <li>• Keep practicing {mockMetrics.strongAreas[0]} - you're doing great!</li>
-                <li>• Try harder difficulty questions in your weak areas</li>
+                {analytics.total_interviews === 0 ? (
+                  <li>• Start your first interview to see personalized focus areas</li>
+                ) : (
+                  <>
+                    <li>• Keep practicing your top topics: {Object.keys(analytics.topics).join(', ') || 'N/A'}</li>
+                    <li>• Target an average score above 85% for mastery</li>
+                    <li>• Try harder difficulty questions in your weak areas</li>
+                  </>
+                )}
               </ul>
             </div>
           </div>
@@ -70,12 +124,12 @@ export default function DashboardPage() {
 
         {/* Charts Grid */}
         <div className="grid lg:grid-cols-2 gap-8 mb-8">
-          <PerformanceChart />
-          <CategoryChart />
+          <PerformanceChart data={analytics.performance_data} />
+          <CategoryChart topics={analytics.topics} />
         </div>
 
         {/* Recent Interviews */}
-        <RecentInterviews />
+        <RecentInterviews interviews={recentInterviews} />
       </div>
     </main>
   )

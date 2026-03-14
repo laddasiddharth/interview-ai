@@ -3,13 +3,22 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
+import { useAuth } from '@/lib/auth-context'
+import { useRouter } from 'next/navigation'
 
 export function Nav() {
   const pathname = usePathname()
+  const { logout } = useAuth()
+  const router = useRouter()
 
   const isHome = pathname === '/'
   const isAuth = pathname === '/login' || pathname === '/signup'
-  const isApp = pathname.startsWith('/dashboard') || pathname.startsWith('/interview')
+  const isApp = pathname.startsWith('/dashboard') || pathname.startsWith('/interview') || pathname.startsWith('/profile')
+
+  const handleLogout = () => {
+    logout()
+    router.push('/')
+  }
 
   if (isHome) {
     return (
@@ -61,7 +70,7 @@ export function Nav() {
           </Link>
           <div className="flex items-center gap-4">
             <Link href="/profile" className="text-sm text-muted-foreground hover:text-foreground">Profile</Link>
-            <Button variant="outline" size="sm">Log Out</Button>
+            <Button variant="outline" size="sm" onClick={handleLogout}>Log Out</Button>
           </div>
         </div>
       </nav>

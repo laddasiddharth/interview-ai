@@ -2,32 +2,40 @@ import { Card } from '@/components/ui/card'
 import { mockMetrics } from '@/lib/mock-data'
 import { TrendingUp, Award, Zap, Target } from 'lucide-react'
 
-export function DashboardStats() {
+interface DashboardStatsProps {
+  data: {
+    total_interviews: number
+    average_score: number
+    best_score: number
+  }
+}
+
+export function DashboardStats({ data }: DashboardStatsProps) {
   const stats = [
     {
       label: 'Interviews Completed',
-      value: mockMetrics.totalInterviews,
+      value: data.total_interviews,
       icon: Target,
       color: 'text-blue-500',
       bgColor: 'bg-blue-500/10',
     },
     {
       label: 'Average Score',
-      value: `${mockMetrics.averageScore}%`,
+      value: `${data.average_score}%`,
       icon: Award,
       color: 'text-purple-500',
       bgColor: 'bg-purple-500/10',
     },
     {
       label: 'Best Score',
-      value: `${mockMetrics.bestScore}%`,
+      value: `${data.best_score}%`,
       icon: TrendingUp,
       color: 'text-cyan-500',
       bgColor: 'bg-cyan-500/10',
     },
     {
       label: 'This Week',
-      value: '3',
+      value: data.total_interviews > 0 ? 'Recent' : '0', // Fallback since weekly isn't explicitly in API yet
       icon: Zap,
       color: 'text-orange-500',
       bgColor: 'bg-orange-500/10',

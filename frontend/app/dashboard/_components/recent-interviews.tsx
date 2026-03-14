@@ -4,7 +4,17 @@ import { Button } from '@/components/ui/button'
 import { mockInterviews } from '@/lib/mock-data'
 import { ArrowRight, CheckCircle, AlertCircle } from 'lucide-react'
 
-export function RecentInterviews() {
+interface RecentInterviewsProps {
+  interviews: Array<{
+    interview_id: number
+    topic: string
+    start_time: string
+    average_score: number
+    total_questions: number
+  }>
+}
+
+export function RecentInterviews({ interviews }: RecentInterviewsProps) {
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
       case 'easy':
@@ -37,41 +47,45 @@ export function RecentInterviews() {
       </div>
 
       <div className="space-y-4">
-        {mockInterviews.slice(0, 5).map((interview) => (
-          <div key={interview.id} className="border border-border rounded-lg p-4 hover:bg-muted/50 transition-colors">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-3">
-                <div className="flex-1">
-                  <h3 className="font-semibold text-foreground">{interview.title}</h3>
-                  <p className="text-sm text-muted-foreground">{interview.company || 'Practice'}</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <div className={`text-2xl font-bold ${getScoreColor(interview.score)}`}>
-                  {interview.score}%
-                </div>
-                <div className="flex items-center gap-1 mt-1">
-                  {interview.score >= 75 ? (
-                    <CheckCircle className="w-4 h-4 text-green-500" />
-                  ) : (
-                    <AlertCircle className="w-4 h-4 text-yellow-500" />
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 flex-wrap">
-              <span className={`text-xs font-medium px-2.5 py-1 rounded capitalize ${getDifficultyColor(interview.difficulty)}`}>
-                {interview.difficulty}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {interview.duration} mins • {new Date(interview.date).toLocaleDateString()}
-              </span>
-            </div>
-
-            <p className="text-sm text-muted-foreground mt-3">{interview.feedback}</p>
+        {interviews.length === 0 ? (
+          <div className="text-center py-12 border border-dashed border-border rounded-lg">
+            <p className="text-muted-foreground">No interviews completed yet.</p>
+            <Link href="/interview/select" className="inline-block mt-4">
+              <Button variant="outline" size="sm">Start your first interview</Button>
+            </Link>
           </div>
-        ))}
+        ) : (
+          interviews.slice(0, 5).map((interview) => (
+            <div key={interview.interview_id} className="border border-border rounded-lg p-4 hover:bg-muted/50 transition-colors">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-foreground">{interview.topic}</h3>
+                    <p className="text-sm text-muted-foreground">Practice Session</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className={`text-2xl font-bold ${getScoreColor(interview.average_score)}`}>
+                    {interview.average_score}%
+                  </div>
+                  <div className="flex items-center gap-1 mt-1">
+                    {interview.average_score >= 75 ? (
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 text-yellow-500" />
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 flex-wrap">
+                <span className="text-xs text-muted-foreground">
+                  {interview.total_questions} questions • {new Date(interview.start_time).toLocaleDateString()}
+                </span>
+              </div>
+            </div>
+          ))
+        )}
       </div>
     </Card>
   )
