@@ -100,7 +100,6 @@ jobs:
       run: |
         cd backend
         flake8 app/ --count --select=E9,F63,F7,F82 --show-source --statistics
-      continue-on-error: true
 
     - name: Format check with black
       run: |
@@ -108,11 +107,14 @@ jobs:
         black --check app/ 2>/dev/null || echo "Run 'black app/' to format code"
       continue-on-error: true
 
-    - name: Validate imports
+    - name: Run Backend Tests
+      env:
+        DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
+        GEMINI_API_KEY: test_key
+        SECRET_KEY: test_secret
       run: |
         cd backend
-        python -m py_compile app/main.py app/models/models.py app/schemas/schemas.py
-        echo "✓ All imports are valid"
+        pytest tests/ -v
 
   frontend-tests:
     name: Frontend Tests
@@ -132,13 +134,12 @@ jobs:
     - name: Install dependencies
       run: |
         cd frontend
-        npm ci
+        npm install
 
     - name: Lint with ESLint
       run: |
         cd frontend
-        npx eslint . 2>/dev/null || echo "No ESLint config"
-      continue-on-error: true
+        npm run lint
 
     - name: TypeScript type check
       run: |

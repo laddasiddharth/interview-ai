@@ -32,19 +32,17 @@ jobs:
     - name: Install dependencies
       run: |
         cd frontend
-        npm ci
+        npm install
 
     - name: Run linter (ESLint)
       run: |
         cd frontend
-        npm run lint || true
-      continue-on-error: true
+        npm run lint
 
     - name: Type check (TypeScript)
       run: |
         cd frontend
-        npx tsc --noEmit || true
-      continue-on-error: true
+        npx tsc --noEmit
 
     - name: Build
       env:
