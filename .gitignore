@@ -86,3 +86,4 @@ sentence_transformers_cache/
 # ─── Misc ─────────────────────────────────────────────────────────────────────
 *.pem
 *.key
+*.tsbuildinfo
