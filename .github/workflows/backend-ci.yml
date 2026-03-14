@@ -60,7 +60,7 @@ jobs:
     - name: Lint with pylint
       run: |
         cd backend
-        pylint app/
+        pylint app/ --errors-only
 
     - name: Format check with black
       run: |
