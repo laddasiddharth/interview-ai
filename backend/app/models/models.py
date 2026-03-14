@@ -5,9 +5,14 @@ from app.database.database import Base, engine
 from app.utils.config import settings
 
 # Conditional pgvector import for PostgreSQL support
-# Note: pgvector requires the pgvector PostgreSQL extension to be installed
+try:
+    from pgvector.sqlalchemy import Vector
+    HAS_PGVECTOR_LIB = True
+except ImportError:
+    HAS_PGVECTOR_LIB = False
+
 def check_vector_support():
-    if "postgresql" not in settings.database_url.lower():
+    if "postgresql" not in settings.database_url.lower() or not HAS_PGVECTOR_LIB:
         return False
     
     try:
@@ -15,12 +20,9 @@ def check_vector_support():
         with engine.connect() as conn:
             conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
             conn.commit()
-        
-        # Try to import the SQLAlchemy type
-        from pgvector.sqlalchemy import Vector
         return True
-    except Exception as e:
-        # Fallback if extension missing or library not installed
+    except Exception:
+        # Fallback if extension missing or permissions denied
         return False
 
 USE_PGVECTOR = check_vector_support()
