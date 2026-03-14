@@ -13,6 +13,7 @@ export default function InterviewSelectPage() {
   const { user, isLoading } = useAuth()
   const router = useRouter()
   const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(null)
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -28,9 +29,11 @@ export default function InterviewSelectPage() {
     )
   }
 
-  const filteredQuestions = selectedDifficulty
-    ? interviewQuestions.filter((q) => q.difficulty === selectedDifficulty)
-    : interviewQuestions
+  const filteredQuestions = interviewQuestions.filter((q) => {
+    const matchesDifficulty = selectedDifficulty ? q.difficulty === selectedDifficulty : true
+    const matchesCategory = selectedCategory ? q.category === selectedCategory : true
+    return matchesDifficulty && matchesCategory
+  })
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
@@ -51,38 +54,73 @@ export default function InterviewSelectPage() {
         {/* Header */}
         <div className="mb-12">
           <h1 className="text-4xl font-bold text-foreground mb-4">Choose Your Interview</h1>
-          <p className="text-muted-foreground text-lg">Select a question and start practicing</p>
+          <p className="text-muted-foreground text-lg">Select a topic and difficulty to start practicing</p>
         </div>
 
-        {/* Difficulty Filter */}
-        <div className="mb-8 flex gap-3">
-          <Button
-            variant={selectedDifficulty === null ? 'default' : 'outline'}
-            onClick={() => setSelectedDifficulty(null)}
-          >
-            All Questions
-          </Button>
-          <Button
-            variant={selectedDifficulty === 'easy' ? 'default' : 'outline'}
-            onClick={() => setSelectedDifficulty('easy')}
-            className={selectedDifficulty === 'easy' ? 'bg-green-600 hover:bg-green-700' : ''}
-          >
-            Easy
-          </Button>
-          <Button
-            variant={selectedDifficulty === 'medium' ? 'default' : 'outline'}
-            onClick={() => setSelectedDifficulty('medium')}
-            className={selectedDifficulty === 'medium' ? 'bg-yellow-600 hover:bg-yellow-700' : ''}
-          >
-            Medium
-          </Button>
-          <Button
-            variant={selectedDifficulty === 'hard' ? 'default' : 'outline'}
-            onClick={() => setSelectedDifficulty('hard')}
-            className={selectedDifficulty === 'hard' ? 'bg-red-600 hover:bg-red-700' : ''}
-          >
-            Hard
-          </Button>
+        {/* Filters */}
+        <div className="space-y-4 mb-8">
+          <div className="flex gap-3 overflow-x-auto pb-2">
+            <Button
+              variant={selectedCategory === null ? 'default' : 'outline'}
+              onClick={() => setSelectedCategory(null)}
+            >
+              All Topics
+            </Button>
+            <Button
+              variant={selectedCategory === 'Algorithms' ? 'default' : 'outline'}
+              onClick={() => setSelectedCategory('Algorithms')}
+            >
+              Algorithms
+            </Button>
+            <Button
+              variant={selectedCategory === 'System Design' ? 'default' : 'outline'}
+              onClick={() => setSelectedCategory('System Design')}
+            >
+              System Design
+            </Button>
+            <Button
+              variant={selectedCategory === 'Machine Learning' ? 'default' : 'outline'}
+              onClick={() => setSelectedCategory('Machine Learning')}
+            >
+              Machine Learning
+            </Button>
+            <Button
+              variant={selectedCategory === 'Behavioral' ? 'default' : 'outline'}
+              onClick={() => setSelectedCategory('Behavioral')}
+            >
+              Behavioral
+            </Button>
+          </div>
+
+          <div className="flex gap-3">
+            <Button
+              variant={selectedDifficulty === null ? 'default' : 'outline'}
+              onClick={() => setSelectedDifficulty(null)}
+            >
+              All Difficulties
+            </Button>
+            <Button
+              variant={selectedDifficulty === 'easy' ? 'default' : 'outline'}
+              onClick={() => setSelectedDifficulty('easy')}
+              className={selectedDifficulty === 'easy' ? 'bg-green-600 hover:bg-green-700 text-white' : ''}
+            >
+              Easy
+            </Button>
+            <Button
+              variant={selectedDifficulty === 'medium' ? 'default' : 'outline'}
+              onClick={() => setSelectedDifficulty('medium')}
+              className={selectedDifficulty === 'medium' ? 'bg-yellow-600 hover:bg-yellow-700 text-white' : ''}
+            >
+              Medium
+            </Button>
+            <Button
+              variant={selectedDifficulty === 'hard' ? 'default' : 'outline'}
+              onClick={() => setSelectedDifficulty('hard')}
+              className={selectedDifficulty === 'hard' ? 'bg-red-600 hover:bg-red-700 text-white' : ''}
+            >
+              Hard
+            </Button>
+          </div>
         </div>
 
         {/* Questions Grid */}

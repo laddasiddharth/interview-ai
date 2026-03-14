@@ -2,7 +2,7 @@
 
 import { Card } from '@/components/ui/card'
 import { performanceData } from '@/lib/mock-data'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
 export function PerformanceChart() {
   return (
@@ -21,12 +21,42 @@ export function PerformanceChart() {
             }}
             labelStyle={{ color: 'var(--foreground)' }}
           />
+          <Legend />
           <Line
             type="monotone"
             dataKey="score"
+            name="Overall Score"
             stroke="var(--accent)"
             dot={{ fill: 'var(--accent)', r: 5 }}
             activeDot={{ r: 7 }}
+            strokeWidth={2}
+          />
+          <Line
+            type="monotone"
+            dataKey="algorithms"
+            name="Algorithms"
+            stroke="#3b82f6"
+            strokeWidth={2}
+          />
+          <Line
+            type="monotone"
+            dataKey="systemDesign"
+            name="System Design"
+            stroke="#8b5cf6"
+            strokeWidth={2}
+          />
+          <Line
+            type="monotone"
+            dataKey="machineLearning"
+            name="Machine Learning"
+            stroke="#10b981"
+            strokeWidth={2}
+          />
+          <Line
+            type="monotone"
+            dataKey="behavioral"
+            name="Behavioral"
+            stroke="#f59e0b"
             strokeWidth={2}
           />
         </LineChart>

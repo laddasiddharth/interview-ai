@@ -60,7 +60,7 @@ export default function DashboardPage() {
             <div>
               <h3 className="font-semibold text-foreground mb-2">Focus Areas This Week</h3>
               <ul className="text-sm text-muted-foreground space-y-1">
-                <li>• Improve {mockMetrics.weakAreas[0]} skills (Currently: 68%)</li>
+                <li>• Improve {mockMetrics.weakAreas[0]} skills (Currently: 80%)</li>
                 <li>• Keep practicing {mockMetrics.strongAreas[0]} - you're doing great!</li>
                 <li>• Try harder difficulty questions in your weak areas</li>
               </ul>
