@@ -7,6 +7,7 @@ export interface User {
   name: string
   email: string
   avatar?: string
+  createdAt?: string
 }
 
 interface AuthContextType {
@@ -39,6 +40,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               name: data.email.split('@')[0],
               email: data.email,
               avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.email}`,
+              createdAt: data.created_at,
             })
           } else {
             localStorage.removeItem('token')
@@ -81,6 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         name: meData.email.split('@')[0],
         email: meData.email,
         avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${meData.email}`,
+        createdAt: meData.created_at,
       })
     } finally {
       setIsLoading(false)
@@ -119,6 +122,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = () => {
     localStorage.removeItem('token')
+    setUser(null)
   }
 
   return (

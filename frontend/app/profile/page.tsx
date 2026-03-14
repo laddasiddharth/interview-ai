@@ -91,7 +91,9 @@ export default function ProfilePage() {
             <div className="space-y-4">
               <div className="flex items-center gap-3 text-sm">
                 <Calendar className="w-4 h-4 text-muted-foreground" />
-                <span className="text-muted-foreground">Joined March 2024</span>
+                <span className="text-muted-foreground">
+                  Joined {user.createdAt ? new Date(user.createdAt).toLocaleDateString(undefined, { month: 'long', year: 'numeric' }) : 'Recently'}
+                </span>
               </div>
               <div className="flex items-center gap-3 text-sm">
                 <Mail className="w-4 h-4 text-muted-foreground" />
@@ -155,13 +157,10 @@ export default function ProfilePage() {
             <p className="text-sm text-muted-foreground mb-6">Manage your account preferences and settings.</p>
             
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 border border-border rounded-lg">
+              <div className="flex items-center justify-between p-4 border border-border rounded-lg opacity-50 cursor-not-allowed">
                 <div>
                   <p className="font-semibold">Email Notifications</p>
-                  <p className="text-sm text-muted-foreground">Receive weekly progress reports</p>
-                </div>
-                <div className="w-12 h-6 bg-accent rounded-full relative">
-                  <div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full" />
+                  <p className="text-sm text-muted-foreground">Coming Soon</p>
                 </div>
               </div>
               <div className="flex items-center justify-between p-4 border border-border rounded-lg opacity-50 cursor-not-allowed">

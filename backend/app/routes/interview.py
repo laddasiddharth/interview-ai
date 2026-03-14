@@ -27,7 +27,7 @@ def get_question(topic: str, db: Session = Depends(get_db)):
 
 @router.post("/answer", response_model=EvaluationResponse)
 def submit_answer(data: AnswerSubmit, db: Session = Depends(get_db)):
-    evaluation = evaluator.evaluate_answer(data.question_text, data.answer_text, db=db)
+    evaluation = evaluator.evaluate_answer(data.question_text, data.answer_text, language=data.language, db=db)
     
     answer_record = Answer(
         interview_id=data.interview_id,

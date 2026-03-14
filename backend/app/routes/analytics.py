@@ -6,7 +6,7 @@ from app.models.models import InterviewSession, Answer
 from app.routes.auth import get_current_user
 from typing import List, Dict
 
-router = APIRouter(prefix="/analytics", tags=["analytics"])
+router = APIRouter()
 
 @router.get("/user")
 def get_user_analytics(current_user = Depends(get_current_user), db: Session = Depends(get_db)):

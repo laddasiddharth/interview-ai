@@ -9,6 +9,7 @@ class UserCreate(BaseModel):
 class UserResponse(BaseModel):
     id: int
     email: str
+    created_at: datetime
     class Config:
         from_attributes = True
 
@@ -39,6 +40,7 @@ class AnswerSubmit(BaseModel):
     interview_id: int
     question_text: str
     answer_text: str
+    language: Optional[str] = None
 
 class EvaluationResponse(BaseModel):
     score: int

@@ -1,45 +1,88 @@
-'use client'
-
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Play, RotateCcw } from 'lucide-react'
+import { Play, RotateCcw, Code2 } from 'lucide-react'
+import { Editor } from '@monaco-editor/react'
+
+const LANGUAGES = [
+  { 
+    id: 'python', 
+    name: 'Python', 
+    template: 'def solution():\n    # Write your code here\n    pass\n\n# Call your function\nsolution()' 
+  },
+  { 
+    id: 'javascript', 
+    name: 'JavaScript', 
+    template: 'function solution() {\n    // Write your code here\n}\n\n// Call your function\nsolution();' 
+  },
+  { 
+    id: 'java', 
+    name: 'Java', 
+    template: 'public class Solution {\n    public static void main(String[] args) {\n        // Write your code here\n    }\n}' 
+  },
+  { 
+    id: 'cpp', 
+    name: 'C++', 
+    template: '#include <iostream>\n\nint main() {\n    // Write your code here\n    return 0;\n}' 
+  },
+  { 
+    id: 'go', 
+    name: 'Go', 
+    template: 'package main\n\nimport "fmt"\n\nfunc main() {\n    // Write your code here\n}' 
+  },
+]
 
 interface CodeEditorProps {
-  onSubmit?: (code: string) => void
+  onSubmit?: (code: string, language: string) => void
 }
 
 export function CodeEditor({ onSubmit }: CodeEditorProps) {
-  const [code, setCode] = useState(`def twoSum(nums, target):
-    # Write your solution here
-    pass
+  const [language, setLanguage] = useState(LANGUAGES[0])
+  const [code, setCode] = useState(language.template)
+  const editorRef = useRef<any>(null)
 
-# Example usage:
-# nums = [2, 7, 11, 15]
-# target = 9
-# print(twoSum(nums, target))`)
+  const handleEditorDidMount = (editor: any) => {
+    editorRef.current = editor
+  }
+
+  const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const lang = LANGUAGES.find(l => l.id === e.target.value) || LANGUAGES[0]
+    setLanguage(lang)
+    setCode(lang.template)
+  }
 
   const handleReset = () => {
-    setCode(`def twoSum(nums, target):
-    # Write your solution here
-    pass
-
-# Example usage:
-# nums = [2, 7, 11, 15]
-# target = 9
-# print(twoSum(nums, target))`)
+    setCode(language.template)
   }
 
   const handleSubmit = () => {
     if (onSubmit) {
-      onSubmit(code)
+      onSubmit(code, language.id)
     }
   }
 
   return (
-    <Card className="h-full flex flex-col bg-card border border-border">
+    <Card className="h-full flex flex-col bg-card border border-border overflow-hidden">
       <div className="p-4 border-b border-border flex items-center justify-between bg-muted/50">
-        <h3 className="font-semibold text-foreground">Code Editor</h3>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Code2 className="w-5 h-5 text-accent" />
+            <h3 className="font-semibold text-foreground">Code Editor</h3>
+          </div>
+          
+          <select 
+            value={language.id}
+            onChange={handleLanguageChange}
+            className="bg-background border border-border rounded px-2 py-1 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-accent"
+          >
+            {LANGUAGES.map((lang) => (
+              <option key={lang.id} value={lang.id}>
+                {lang.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <div className="flex gap-2">
           <Button size="sm" variant="outline" onClick={handleReset} className="gap-2">
             <RotateCcw className="w-4 h-4" />
@@ -51,13 +94,24 @@ export function CodeEditor({ onSubmit }: CodeEditorProps) {
           </Button>
         </div>
       </div>
-      <textarea
-        value={code}
-        onChange={(e) => setCode(e.target.value)}
-        className="flex-1 p-4 bg-background text-foreground font-mono text-sm resize-none focus:outline-none border-0"
-        placeholder="Write your code here..."
-        spellCheck="false"
-      />
+      
+      <div className="flex-1 min-h-0">
+        <Editor
+          height="100%"
+          language={language.id}
+          value={code}
+          theme="vs-dark"
+          onChange={(value) => setCode(value || '')}
+          onMount={handleEditorDidMount}
+          options={{
+            fontSize: 14,
+            minimap: { enabled: false },
+            scrollBeyondLastLine: false,
+            automaticLayout: true,
+            padding: { top: 16, bottom: 16 }
+          }}
+        />
+      </div>
     </Card>
   )
 }

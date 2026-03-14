@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useEffect, useState, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useAuth } from '@/lib/auth-context'
 import { CodeEditor } from '@/components/code-editor'
+import { Editor } from '@monaco-editor/react'
 import { Clock, ChevronLeft, AlertCircle, Send } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 
@@ -20,6 +21,7 @@ export default function InterviewRoomPage() {
 
   const [timeLeft, setTimeLeft] = useState<number | null>(7200)
   const [code, setCode] = useState('')
+  const [selectedLanguage, setSelectedLanguage] = useState('python')
   const [submitted, setSubmitted] = useState(false)
   const [topic, setTopic] = useState<string | null>(null)
   const [question, setQuestion] = useState<string | null>(null)
@@ -129,8 +131,9 @@ export default function InterviewRoomPage() {
     setChatInput('')
   }
 
-  const handleSubmit = async (submittedCode: string) => {
+  const handleSubmit = async (submittedCode: string, lang: string) => {
     setCode(submittedCode)
+    setSelectedLanguage(lang)
     setIsTyping(true)
 
     const finalAnswerText = (chatInput ? chatInput + "\n" : "") + submittedCode
@@ -153,7 +156,8 @@ export default function InterviewRoomPage() {
         body: JSON.stringify({
           interview_id: Number(questionId),
           question_text: question,
-          answer_text: finalAnswerText
+          answer_text: finalAnswerText,
+          language: lang
         })
       })
       const data = await res.json()
@@ -229,10 +233,21 @@ export default function InterviewRoomPage() {
 
           <Card className="mt-8 p-6">
             <h2 className="text-xl font-bold text-foreground mb-4">Your Solution</h2>
-            <div className="bg-background p-4 rounded border border-border">
-              <pre className="text-sm text-foreground font-mono whitespace-pre-wrap overflow-x-auto">
-                {code}
-              </pre>
+            <div className="h-[400px] border border-border rounded-lg overflow-hidden">
+              <Editor
+                height="100%"
+                language={selectedLanguage}
+                value={code}
+                theme="vs-dark"
+                options={{
+                  readOnly: true,
+                  fontSize: 14,
+                  minimap: { enabled: false },
+                  scrollBeyondLastLine: false,
+                  automaticLayout: true,
+                  padding: { top: 16, bottom: 16 }
+                }}
+              />
             </div>
           </Card>
         </div>

@@ -70,13 +70,22 @@ export default function DashboardPage() {
     }
   }, [user, authLoading])
 
-  if (authLoading || dataLoading || !user || !analytics) {
+  if (authLoading || (dataLoading && !analytics) || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-accent border-r-2 border-r-transparent mr-4" />
         <div className="text-muted-foreground">Loading your progress...</div>
       </div>
     )
+  }
+
+  // Final fallback if analytics failed to fetch completely
+  const safeAnalytics = analytics || {
+    total_interviews: 0,
+    average_score: 0,
+    best_score: 0,
+    performance_data: [],
+    topics: {}
   }
 
   return (
@@ -98,7 +107,7 @@ export default function DashboardPage() {
 
         {/* Stats */}
         <div className="mb-8">
-          <DashboardStats data={analytics} />
+          <DashboardStats data={safeAnalytics} />
         </div>
 
         {/* Tips Section */}
@@ -108,11 +117,11 @@ export default function DashboardPage() {
             <div>
               <h3 className="font-semibold text-foreground mb-2">Focus Areas This Week</h3>
               <ul className="text-sm text-muted-foreground space-y-1">
-                {analytics.total_interviews === 0 ? (
+                {safeAnalytics.total_interviews === 0 ? (
                   <li>• Start your first interview to see personalized focus areas</li>
                 ) : (
                   <>
-                    <li>• Keep practicing your top topics: {Object.keys(analytics.topics).join(', ') || 'N/A'}</li>
+                    <li>• Keep practicing your top topics: {Object.keys(safeAnalytics.topics).join(', ') || 'N/A'}</li>
                     <li>• Target an average score above 85% for mastery</li>
                     <li>• Try harder difficulty questions in your weak areas</li>
                   </>
@@ -124,8 +133,8 @@ export default function DashboardPage() {
 
         {/* Charts Grid */}
         <div className="grid lg:grid-cols-2 gap-8 mb-8">
-          <PerformanceChart data={analytics.performance_data} />
-          <CategoryChart topics={analytics.topics} />
+          <PerformanceChart data={safeAnalytics.performance_data} />
+          <CategoryChart topics={safeAnalytics.topics} />
         </div>
 
         {/* Recent Interviews */}

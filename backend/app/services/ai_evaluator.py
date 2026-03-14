@@ -101,16 +101,17 @@ class AIEvaluator:
         
         return None
 
-    def evaluate_answer(self, question: str, answer: str, db: Session = None) -> dict:
+    def evaluate_answer(self, question: str, answer: str, language: str = None, db: Session = None) -> dict:
         if db:
             cached_result = self.check_cache(db, question, answer)
             if cached_result:
                 cached_result["follow_up_question"] = None  # Could optionally generate one
                 return cached_result
 
+        lang_hint = f" (Language: {language})" if language else ""
         prompt = f"""
 You are an expert technical interviewer evaluating a candidate's response.
-Question: {question}
+Question: {question}{lang_hint}
 Candidate Answer: {answer}
 
 Provide your feedback as a short JSON object with exactly these fields:
