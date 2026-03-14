@@ -10,6 +10,7 @@ from app.models.models import AnswerCache
 try:
     if "postgresql" in settings.database_url.lower():
         from pgvector.sqlalchemy import Vector
+
         USE_PGVECTOR = True
     else:
         USE_PGVECTOR = False
@@ -19,6 +20,7 @@ except:
 # Import cosine_similarity for fallback (SQLite)
 if not USE_PGVECTOR:
     from sklearn.metrics.pairwise import cosine_similarity
+
 
 class AIEvaluator:
     def __init__(self):
@@ -30,7 +32,7 @@ class AIEvaluator:
     def encoder(self):
         if self._encoder is None:
             print("📦 Loading SentenceTransformer model...")
-            self._encoder = SentenceTransformer('all-MiniLM-L6-v2')
+            self._encoder = SentenceTransformer("all-MiniLM-L6-v2")
         return self._encoder
 
     def check_cache(self, db: Session, question: str, answer: str):
@@ -40,34 +42,44 @@ class AIEvaluator:
         - In-memory cosine similarity for SQLite (suitable for development)
         """
         # Find cached answers for the same question
-        cached_answers = db.query(AnswerCache).filter(
-            AnswerCache.question_text == question
-        ).limit(50).all()
-        
+        cached_answers = (
+            db.query(AnswerCache)
+            .filter(AnswerCache.question_text == question)
+            .limit(50)
+            .all()
+        )
+
         if not cached_answers:
             return None
-        
+
         # Encode current answer
         current_emb = self.encoder.encode([answer])
         query_embedding = current_emb[0].tolist() if self.use_pgvector else current_emb
-        
+
         if self.use_pgvector:
             # Use pgvector for similarity search - this query runs in the database
             # and scales much better than loading all embeddings into memory
             from sqlalchemy import func, and_
-            
-            best_match = db.query(
-                AnswerCache,
-                func.cosine_distance(AnswerCache.embedding, query_embedding).label("distance")
-            ).filter(
-                AnswerCache.question_text == question,
-                AnswerCache.embedding.isnot(None)
-            ).order_by("distance").first()
-            
+
+            best_match = (
+                db.query(
+                    AnswerCache,
+                    func.cosine_distance(AnswerCache.embedding, query_embedding).label(
+                        "distance"
+                    ),
+                )
+                .filter(
+                    AnswerCache.question_text == question,
+                    AnswerCache.embedding.isnot(None),
+                )
+                .order_by("distance")
+                .first()
+            )
+
             if best_match:
                 cache, distance = best_match
                 similarity = 1 - distance  # Convert distance to similarity score
-                
+
                 if similarity > 0.9:
                     return {
                         "score": cache.score,
@@ -75,20 +87,20 @@ class AIEvaluator:
                         "strengths": cache.strengths,
                         "weakness": cache.weakness,
                         "cached": True,
-                        "similarity": round(similarity, 3)
+                        "similarity": round(similarity, 3),
                     }
         else:
             # Fallback: in-memory cosine similarity (for SQLite dev environments)
             best_match = None
             highest_similarity = 0.0
-            
+
             for cache in cached_answers:
                 cache_emb = self.encoder.encode([cache.answer_text])
                 sim = cosine_similarity(current_emb, cache_emb)[0][0]
                 if sim > highest_similarity:
                     highest_similarity = sim
                     best_match = cache
-            
+
             if highest_similarity > 0.9 and best_match:
                 return {
                     "score": best_match.score,
@@ -96,16 +108,20 @@ class AIEvaluator:
                     "strengths": best_match.strengths,
                     "weakness": best_match.weakness,
                     "cached": True,
-                    "similarity": round(highest_similarity, 3)
+                    "similarity": round(highest_similarity, 3),
                 }
-        
+
         return None
 
-    def evaluate_answer(self, question: str, answer: str, language: str = None, db: Session = None) -> dict:
+    def evaluate_answer(
+        self, question: str, answer: str, language: str = None, db: Session = None
+    ) -> dict:
         if db:
             cached_result = self.check_cache(db, question, answer)
             if cached_result:
-                cached_result["follow_up_question"] = None  # Could optionally generate one
+                cached_result["follow_up_question"] = (
+                    None  # Could optionally generate one
+                )
                 return cached_result
 
         lang_hint = f" (Language: {language})" if language else ""
@@ -131,40 +147,51 @@ Return ONLY valid JSON.
             ),
         )
         try:
-            clean_text = response.text.strip().removeprefix("```json").removesuffix("```").strip()
+            clean_text = (
+                response.text.strip()
+                .removeprefix("```json")
+                .removesuffix("```")
+                .strip()
+            )
             res = json.loads(clean_text)
-            
+
             # Save to cache if DB provided
             if db:
                 # Generate embedding for pgvector (if using PostgreSQL)
                 embedding = None
                 if self.use_pgvector:
                     embedding = self.encoder.encode(answer).tolist()
-                
+
                 new_cache = AnswerCache(
                     question_text=question,
                     answer_text=answer,
                     ai_feedback=res.get("feedback", ""),
                     score=res.get("score", 5),
                     strengths=res.get("strengths", ""),
-                    weakness=res.get("weakness", "")
+                    weakness=res.get("weakness", ""),
                 )
-                
+
                 if self.use_pgvector and embedding is not None:
                     new_cache.embedding = embedding
-                
+
                 db.add(new_cache)
                 db.commit()
-            
+
             return res
         except Exception as e:
-            return {"score": 5, "feedback": f"Error parsing AI response: {str(e)}", "follow_up_question": None}
+            return {
+                "score": 5,
+                "feedback": f"Error parsing AI response: {str(e)}",
+                "follow_up_question": None,
+            }
 
     def generate_final_report(self, interview_answers: list[dict]) -> dict:
         answers_text = ""
         for idx, item in enumerate(interview_answers):
-            answers_text += f"\nQ{idx+1}: {item['question']}\nA{idx+1}: {item['answer']}\n"
-            
+            answers_text += (
+                f"\nQ{idx+1}: {item['question']}\nA{idx+1}: {item['answer']}\n"
+            )
+
         prompt = f"""
 You are an expert technical interviewer. Review the following questions and answers from an interview session:
 {answers_text}
@@ -185,9 +212,15 @@ Return ONLY valid JSON.
             ),
         )
         try:
-            clean_text = response.text.strip().removeprefix("```json").removesuffix("```").strip()
+            clean_text = (
+                response.text.strip()
+                .removeprefix("```json")
+                .removesuffix("```")
+                .strip()
+            )
             return json.loads(clean_text)
         except Exception as e:
             return {"error": f"Error generating report: {str(e)}", "total_score": 0}
+
 
 evaluator = AIEvaluator()

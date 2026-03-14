@@ -37,6 +37,7 @@ app.include_router(analytics.router, prefix="/analytics", tags=["analytics"])
 app.include_router(chat.router)
 app.include_router(evaluate.router)
 
+
 @app.get("/")
 @limiter.limit("20/minute")
 def root(request: Request):

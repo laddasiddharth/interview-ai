@@ -47,7 +47,9 @@ async def chat_interview(
     history = []
     for msg in request.messages[:-1]:
         role = "user" if msg.role == "user" else "model"
-        history.append(types.Content(role=role, parts=[types.Part.from_text(text=msg.content)]))
+        history.append(
+            types.Content(role=role, parts=[types.Part.from_text(text=msg.content)])
+        )
 
     chat = client.chats.create(
         model="gemini-1.5-flash",
