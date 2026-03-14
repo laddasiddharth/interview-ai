@@ -7,16 +7,32 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 import { useAuth } from '@/lib/auth-context'
+import { useEffect } from 'react'
 
 export default function SignupPage() {
   const router = useRouter()
-  const { signup } = useAuth()
+  const { signup, checkEmail } = useAuth()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [emailInUse, setEmailInUse] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (!email || !email.includes('@')) {
+      setEmailInUse(false)
+      return
+    }
+
+    const timer = setTimeout(async () => {
+      const exists = await checkEmail(email)
+      setEmailInUse(exists)
+    }, 500)
+
+    return () => clearTimeout(timer)
+  }, [email, checkEmail])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -85,7 +101,13 @@ export default function SignupPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={isLoading}
+                className={emailInUse ? 'border-destructive' : ''}
               />
+              {emailInUse && (
+                <p className="text-xs text-destructive mt-1">
+                  This email is already registered. Please sign in instead.
+                </p>
+              )}
             </div>
 
             <div>
@@ -116,7 +138,7 @@ export default function SignupPage() {
               />
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full" disabled={isLoading || emailInUse}>
               {isLoading ? 'Creating account...' : 'Sign Up'}
             </Button>
           </form>

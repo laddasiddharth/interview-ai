@@ -14,6 +14,7 @@ interface AuthContextType {
   isLoading: boolean
   login: (email: string, password: string) => Promise<void>
   signup: (name: string, email: string, password: string) => Promise<void>
+  checkEmail: (email: string) => Promise<boolean>
   logout: () => void
 }
 
@@ -104,12 +105,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const checkEmail = async (email: string): Promise<boolean> => {
+    try {
+      const res = await fetch(`http://localhost:8000/auth/check-email?email=${encodeURIComponent(email)}`)
+      if (!res.ok) return false
+      const data = await res.json()
+      return data.exists
+    } catch (error) {
+      console.error('Check email error', error)
+      return false
+    }
+  }
+
   const logout = () => {
     localStorage.removeItem('token')
   }
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, signup, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, login, signup, checkEmail, logout }}>
       {children}
     </AuthContext.Provider>
   )
