@@ -100,6 +100,10 @@ jobs:
       continue-on-error: true
 
     - name: Check schema consistency
+      env:
+        DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
+        GEMINI_API_KEY: test_key
+        SECRET_KEY: test_secret
       run: |
         cd backend
         python -c "
