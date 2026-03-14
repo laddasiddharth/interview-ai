@@ -23,8 +23,15 @@ if not USE_PGVECTOR:
 class AIEvaluator:
     def __init__(self):
         self.client = genai.Client(api_key=settings.gemini_api_key)
-        self.encoder = SentenceTransformer('all-MiniLM-L6-v2')
+        self._encoder = None
         self.use_pgvector = USE_PGVECTOR
+
+    @property
+    def encoder(self):
+        if self._encoder is None:
+            print("📦 Loading SentenceTransformer model...")
+            self._encoder = SentenceTransformer('all-MiniLM-L6-v2')
+        return self._encoder
 
     def check_cache(self, db: Session, question: str, answer: str):
         """
