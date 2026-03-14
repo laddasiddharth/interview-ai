@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { API_URL } from '@/lib/config'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useAuth } from '@/lib/auth-context'
@@ -26,7 +27,7 @@ export default function ProfilePage() {
       if (!user || !token) return
 
       try {
-        const res = await fetch('http://localhost:8000/analytics/user', {
+        const res = await fetch(`${API_URL}/analytics/user`, {
           headers: { Authorization: `Bearer ${token}` }
         })
         if (res.ok) {

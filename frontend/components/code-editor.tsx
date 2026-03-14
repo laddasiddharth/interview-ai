@@ -34,9 +34,10 @@ const LANGUAGES = [
 
 interface CodeEditorProps {
   onSubmit?: (code: string, language: string) => void
+  isSubmitting?: boolean
 }
 
-export function CodeEditor({ onSubmit }: CodeEditorProps) {
+export function CodeEditor({ onSubmit, isSubmitting }: CodeEditorProps) {
   const [language, setLanguage] = useState(LANGUAGES[0])
   const [code, setCode] = useState(language.template)
   const editorRef = useRef<any>(null)
@@ -56,7 +57,7 @@ export function CodeEditor({ onSubmit }: CodeEditorProps) {
   }
 
   const handleSubmit = () => {
-    if (onSubmit) {
+    if (onSubmit && !isSubmitting) {
       onSubmit(code, language.id)
     }
   }
@@ -88,9 +89,13 @@ export function CodeEditor({ onSubmit }: CodeEditorProps) {
             <RotateCcw className="w-4 h-4" />
             Reset
           </Button>
-          <Button size="sm" onClick={handleSubmit} className="gap-2">
-            <Play className="w-4 h-4" />
-            Submit
+          <Button size="sm" onClick={handleSubmit} disabled={isSubmitting} className="gap-2">
+            {isSubmitting ? (
+              <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-white mr-1" />
+            ) : (
+              <Play className="w-4 h-4" />
+            )}
+            {isSubmitting ? 'Submitting...' : 'Submit'}
           </Button>
         </div>
       </div>

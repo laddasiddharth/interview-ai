@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
+import { API_URL } from '@/lib/config'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useAuth } from '@/lib/auth-context'
@@ -19,7 +20,7 @@ export default function InterviewRoomPage() {
   const router = useRouter()
   const { user, isLoading: authLoading } = useAuth()
 
-  const [timeLeft, setTimeLeft] = useState<number | null>(7200)
+  const [timeLeft, setTimeLeft] = useState<number | null>(null)
   const [code, setCode] = useState('')
   const [selectedLanguage, setSelectedLanguage] = useState('python')
   const [submitted, setSubmitted] = useState(false)
@@ -34,6 +35,16 @@ export default function InterviewRoomPage() {
   const [isTyping, setIsTyping] = useState(false)
   const [evaluation, setEvaluation] = useState<any>(null)
   const chatScrollRef = useRef<HTMLDivElement>(null)
+
+  const getTimeLimitByDifficulty = (diff: string | null) => {
+    if (!diff) return 2700 // 45m default
+    switch (diff.toLowerCase()) {
+      case 'easy': return 1200 // 20m
+      case 'medium': return 2700 // 45m
+      case 'hard': return 3600 // 60m
+      default: return 2700
+    }
+  }
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -51,7 +62,7 @@ export default function InterviewRoomPage() {
     const fetchInterviewData = async () => {
       try {
         const token = localStorage.getItem('token')
-        const reportRes = await fetch(`http://localhost:8000/interview/report/${questionId}`, {
+        const reportRes = await fetch(`${API_URL}/interview/report/${questionId}`, {
           headers: { Authorization: `Bearer ${token}` }
         })
         if (!reportRes.ok) throw new Error('Failed to fetch report')
@@ -71,13 +82,23 @@ export default function InterviewRoomPage() {
         }
 
         if (!question) {
-          const qRes = await fetch(`http://localhost:8000/interview/question?topic=${encodeURIComponent(reportData.topic)}`, {
+          const qRes = await fetch(`${API_URL}/interview/question?topic=${encodeURIComponent(reportData.topic)}`, {
             headers: { Authorization: `Bearer ${token}` }
           })
           if (qRes.ok) {
             const qData = await qRes.json()
             setQuestion(qData.question)
             setDifficulty(qData.difficulty)
+            
+            const limit = getTimeLimitByDifficulty(qData.difficulty)
+            if (reportData.start_time) {
+              const start = new Date(reportData.start_time).getTime()
+              const now = new Date().getTime()
+              const elapsed = Math.floor((now - start) / 1000)
+              setTimeLeft(Math.max(0, limit - elapsed))
+            } else {
+              setTimeLeft(limit)
+            }
           }
         }
       } catch(e) {
@@ -94,7 +115,11 @@ export default function InterviewRoomPage() {
 
     const interval = setInterval(() => {
       setTimeLeft((prev) => {
-        if (prev === null || prev <= 0) {
+        if (prev === null) {
+          clearInterval(interval)
+          return null
+        }
+        if (prev <= 0) {
           clearInterval(interval)
           return 0
         }
@@ -147,7 +172,7 @@ export default function InterviewRoomPage() {
     
     try {
       const token = localStorage.getItem('token')
-      const res = await fetch('http://localhost:8000/interview/answer', {
+      const res = await fetch(`${API_URL}/interview/answer`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -364,13 +389,13 @@ export default function InterviewRoomPage() {
 
           {/* Right Panel - Code Editor */}
           <div className="hidden md:flex w-1/2 flex-col">
-            <CodeEditor onSubmit={handleSubmit} />
+            <CodeEditor onSubmit={handleSubmit} isSubmitting={isTyping} />
           </div>
         </div>
 
         {/* Mobile Code Editor */}
         <div className="md:hidden border-t border-border bg-card p-4">
-          <CodeEditor onSubmit={handleSubmit} />
+          <CodeEditor onSubmit={handleSubmit} isSubmitting={isTyping} />
         </div>
       </div>
     </main>

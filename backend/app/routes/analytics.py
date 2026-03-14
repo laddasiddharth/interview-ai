@@ -54,18 +54,13 @@ def get_user_analytics(current_user = Depends(get_current_user), db: Session = D
     for answer in answers:
         interview_id = answer.interview_id
         if interview_id not in interview_scores:
-            interview = db.query(InterviewSession).filter(
-                InterviewSession.id == interview_id
-            ).first()
-            if interview:
-                interview_scores[interview_id] = {
-                    "interview_id": interview_id,
-                    "date": interview.start_time.isoformat(),
-                    "scores": []
-                }
+            interview_scores[interview_id] = {
+                "interview_id": interview_id,
+                "date": answer.interview.start_time.isoformat(),
+                "scores": []
+            }
         
-        if interview_id in interview_scores:
-            interview_scores[interview_id]["scores"].append(answer.score)
+        interview_scores[interview_id]["scores"].append(answer.score)
     
     # Calculate average score per interview
     for interview_id, data in interview_scores.items():

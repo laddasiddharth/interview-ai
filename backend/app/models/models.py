@@ -67,6 +67,8 @@ class AnswerCache(Base):
     weakness = Column(Text)
     
     # pgvector column for semantic similarity search (PostgreSQL only)
-    # Only added if pgvector extension is available
-    # For development without pgvector, in-memory similarity search is used instead
+    if USE_PGVECTOR:
+        embedding = Column(Vector(384))  # all-MiniLM-L6-v2 has 384 dimensions
+    else:
+        embedding = Column(Text, nullable=True) # Fallback for SQLite (store as string or null)
 

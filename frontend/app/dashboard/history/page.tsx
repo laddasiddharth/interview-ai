@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ChevronLeft, Calendar, BarChart2, ArrowRight } from 'lucide-react'
 import { useAuth } from '@/lib/auth-context'
 import { useRouter } from 'next/navigation'
+import { API_URL } from '@/lib/config'
 
 interface Interview {
   interview_id: number
@@ -34,7 +35,7 @@ export default function HistoryPage() {
     const fetchHistory = async () => {
       try {
         const token = localStorage.getItem('token')
-        const res = await fetch('http://localhost:8000/analytics/user/details', {
+        const res = await fetch(`${API_URL}/analytics/user/details`, {
           headers: { Authorization: `Bearer ${token}` }
         })
         if (res.ok) {

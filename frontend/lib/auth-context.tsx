@@ -1,6 +1,7 @@
 'use client'
 
 import React, { createContext, useContext, useState, useEffect } from 'react'
+import { API_URL } from '@/lib/config'
 
 export interface User {
   id: string
@@ -30,7 +31,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const token = localStorage.getItem('token')
       if (token) {
         try {
-          const res = await fetch('http://localhost:8000/auth/me', {
+          const res = await fetch(`${API_URL}/auth/me`, {
             headers: { Authorization: `Bearer ${token}` }
           })
           if (res.ok) {
@@ -61,7 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       formData.append('username', email)
       formData.append('password', password)
 
-      const res = await fetch('http://localhost:8000/auth/login', {
+      const res = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: formData.toString()
@@ -73,7 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem('token', data.access_token)
       
       // Fetch user profile
-      const meRes = await fetch('http://localhost:8000/auth/me', {
+      const meRes = await fetch(`${API_URL}/auth/me`, {
         headers: { Authorization: `Bearer ${data.access_token}` }
       })
       const meData = await meRes.json()
@@ -93,7 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signup = async (name: string, email: string, password: string) => {
     setIsLoading(true)
     try {
-      const res = await fetch('http://localhost:8000/auth/signup', {
+      const res = await fetch(`${API_URL}/auth/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
@@ -110,7 +111,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const checkEmail = async (email: string): Promise<boolean> => {
     try {
-      const res = await fetch(`http://localhost:8000/auth/check-email?email=${encodeURIComponent(email)}`)
+      const res = await fetch(`${API_URL}/auth/check-email?email=${encodeURIComponent(email)}`)
       if (!res.ok) return false
       const data = await res.json()
       return data.exists
