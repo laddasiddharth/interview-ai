@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional, List
 from datetime import datetime
 
@@ -10,8 +10,7 @@ class UserResponse(BaseModel):
     id: int
     email: str
     created_at: datetime
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class Token(BaseModel):
     access_token: str
@@ -27,8 +26,7 @@ class InterviewResponse(BaseModel):
     id: int
     topic: str
     start_time: datetime
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class QuestionResponse(BaseModel):
     id: int

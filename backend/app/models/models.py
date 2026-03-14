@@ -1,24 +1,29 @@
-from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, Float
+from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, Float, text
 from sqlalchemy.orm import relationship
 from datetime import datetime
-from app.database.database import Base
+from app.database.database import Base, engine
 from app.utils.config import settings
 
 # Conditional pgvector import for PostgreSQL support
 # Note: pgvector requires the pgvector PostgreSQL extension to be installed
-# For development without pgvector, we use in-memory similarity search fallback
-try:
-    if "postgresql" in settings.database_url.lower():
-        try:
-            from pgvector.sqlalchemy import Vector
-            USE_PGVECTOR = True
-        except ImportError:
-            print("⚠️  pgvector not available - using in-memory similarity search")
-            USE_PGVECTOR = False
-    else:
-        USE_PGVECTOR = False
-except:
-    USE_PGVECTOR = False
+def check_vector_support():
+    if "postgresql" not in settings.database_url.lower():
+        return False
+    
+    try:
+        # Try to enable the extension if it exists on the server
+        with engine.connect() as conn:
+            conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+            conn.commit()
+        
+        # Try to import the SQLAlchemy type
+        from pgvector.sqlalchemy import Vector
+        return True
+    except Exception as e:
+        # Fallback if extension missing or library not installed
+        return False
+
+USE_PGVECTOR = check_vector_support()
 
 class User(Base):
     __tablename__ = "users"
