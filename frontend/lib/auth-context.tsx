@@ -38,7 +38,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const data = await res.json()
             setUser({
               id: String(data.id),
-              name: data.email.split('@')[0],
+              name: data.full_name || data.email.split('@')[0],
               email: data.email,
               avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.email}`,
               createdAt: data.created_at,
@@ -81,7 +81,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       setUser({
         id: String(meData.id),
-        name: meData.email.split('@')[0],
+        name: meData.full_name || meData.email.split('@')[0],
         email: meData.email,
         avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${meData.email}`,
         createdAt: meData.created_at,
@@ -97,7 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const res = await fetch(`${API_URL}/auth/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ email, password, full_name: name })
       })
       
       if (!res.ok) throw new Error('Signup failed')

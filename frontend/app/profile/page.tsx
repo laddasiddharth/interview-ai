@@ -141,37 +141,50 @@ export default function ProfilePage() {
             <div className="mt-8 pt-8 border-t border-border">
               <h3 className="font-semibold text-foreground mb-4">Mastery Badges</h3>
               <div className="flex flex-wrap gap-3">
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-accent/10 rounded-full text-accent text-sm">
-                  <Award className="w-4 h-4" />
-                  Fast Learner
-                </div>
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-purple-500/10 rounded-full text-purple-500 text-sm">
-                  <Award className="w-4 h-4" />
-                  Consistency King
-                </div>
+                {stats && stats.total_interviews > 0 ? (
+                  <>
+                    {stats.average_score >= 80 && (
+                      <div className="flex items-center gap-2 px-3 py-1.5 bg-accent/10 rounded-full text-accent text-sm">
+                        <Award className="w-4 h-4" />
+                        Fast Learner
+                      </div>
+                    )}
+                    {stats.total_interviews >= 5 && (
+                      <div className="flex items-center gap-2 px-3 py-1.5 bg-purple-500/10 rounded-full text-purple-500 text-sm">
+                        <Award className="w-4 h-4" />
+                        Consistency King
+                      </div>
+                    )}
+                    {stats.best_score >= 90 && (
+                      <div className="flex items-center gap-2 px-3 py-1.5 bg-yellow-500/10 rounded-full text-yellow-500 text-sm">
+                        <Award className="w-4 h-4" />
+                        High Achiever
+                      </div>
+                    )}
+                    {Object.values(stats.topics).some((count: any) => count >= 3) && (
+                      <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-500/10 rounded-full text-blue-500 text-sm">
+                        <Award className="w-4 h-4" />
+                        Topic Specialist
+                      </div>
+                    )}
+                    {!stats.average_score && !stats.total_interviews && (
+                      <p className="text-sm text-muted-foreground italic">Complete interviews to earn badges!</p>
+                    )}
+                    {stats.total_interviews > 0 && 
+                     stats.average_score < 80 && 
+                     stats.total_interviews < 5 && 
+                     stats.best_score < 90 && 
+                     !Object.values(stats.topics).some((count: any) => count >= 3) && (
+                      <p className="text-sm text-muted-foreground italic">Keep practicing to unlock badges!</p>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">Start your first interview to earn badges!</p>
+                )}
               </div>
             </div>
           </Card>
 
-          <Card className="p-8">
-            <h2 className="text-2xl font-bold text-foreground mb-4">Settings</h2>
-            <p className="text-sm text-muted-foreground mb-6">Manage your account preferences and settings.</p>
-            
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 border border-border rounded-lg opacity-50 cursor-not-allowed">
-                <div>
-                  <p className="font-semibold">Email Notifications</p>
-                  <p className="text-sm text-muted-foreground">Coming Soon</p>
-                </div>
-              </div>
-              <div className="flex items-center justify-between p-4 border border-border rounded-lg opacity-50 cursor-not-allowed">
-                <div>
-                  <p className="font-semibold">Two-Factor Authentication</p>
-                  <p className="text-sm text-muted-foreground">Coming Soon</p>
-                </div>
-              </div>
-            </div>
-          </Card>
         </div>
       </div>
     </div>

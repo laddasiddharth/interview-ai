@@ -6,11 +6,13 @@ from datetime import datetime
 class UserCreate(BaseModel):
     email: str
     password: str
+    full_name: Optional[str] = None
 
 
 class UserResponse(BaseModel):
     id: int
     email: str
+    full_name: Optional[str] = None
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
 
